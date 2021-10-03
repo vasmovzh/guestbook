@@ -153,3 +153,10 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# Custom
+.env.local
+.env.local.php
+.env.*.local
+public/bundles/
+var/
+vendor/
