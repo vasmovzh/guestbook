@@ -1,0 +1,33 @@
+{% extends "base.html.twig" %}
+
+{% block title %}
+    Conference Guestbook – {{ conference }}
+{% endblock %}
+
+{% block body %}
+    <h2>{{ conference }} Conference</h2>
+
+    {% if comments|length <= 0 %}
+        <div>No comments have been posted yet for this conference</div>
+    {% else %}
+        <div>There are {{ (comments|length - 1) > next }} comments</div>
+
+        {% for comment in comments %}
+            {% if comment.photoFilename %}
+                <img src="{{ asset('uploads/photos/' ~ comment.photoFilename) }}" alt="photo">
+            {% endif %}
+
+            <h4>{{ comment.author }}</h4>
+            <small>{{ comment.createdAt|format_datetime('medium' , 'short') }}</small>
+            <p>{{ comment.text }}</p>
+        {% endfor %}
+
+        {% if prev >= 0 %}
+            <a href="{{ path('conference', {id: conference.id, offset: prev}) }}">Prev</a>
+        {% endif %}
+        {% if next < comments|length %}
+            <a href="{{ path('conference', {id: conference.id, offset: next}) }}">Next</a>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
