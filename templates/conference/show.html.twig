@@ -29,5 +29,9 @@
             <a href="{{ path('conference', {slug: conference.slug, offset: next}) }}">Next</a>
         {% endif %}
     {% endif %}
+
+    <h2>Add feedback</h2>
+
+    {{ form(comment_form) }}
 {% endblock %}
 

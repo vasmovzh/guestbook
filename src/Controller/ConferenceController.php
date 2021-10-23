@@ -2,10 +2,14 @@
 
 namespace App\Controller;
 
+use App\Entity\Comment;
 use App\Entity\Conference;
+use App\Form\CommentFormType;
 use App\Repository\CommentRepository;
 use App\Repository\ConferenceRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -13,11 +17,13 @@ use Twig\Environment;
 
 final class ConferenceController extends AbstractController
 {
-    private Environment $twig;
+    private Environment            $twig;
+    private EntityManagerInterface $entityManager;
 
-    public function __construct(Environment $twig)
+    public function __construct(Environment $twig, EntityManagerInterface $entityManager)
     {
-        $this->twig = $twig;
+        $this->twig          = $twig;
+        $this->entityManager = $entityManager;
     }
 
     /**
@@ -36,14 +42,29 @@ final class ConferenceController extends AbstractController
      */
     public function show(Request $request, Conference $conference, CommentRepository $commentRepository): Response
     {
+        $comment     = new Comment();
+        $commentForm = $this->createForm(CommentFormType::class, $comment);
+
+        $commentForm->handleRequest($request);
+
+        if ($commentForm->isSubmitted() && $commentForm->isValid()) {
+            $comment->setConference($conference);
+
+            $this->entityManager->persist($comment);
+            $this->entityManager->flush();
+
+            return $this->redirectToRoute('conference', ['slug' => $conference->getSlug()]);
+        }
+
         $offset    = max(0, $request->query->getInt('offset'));
         $paginator = $commentRepository->getPaginator($conference, $offset);
 
         return new Response($this->twig->render('conference/show.html.twig', [
-            'conference' => $conference,
-            'comments'   => $paginator,
-            'prev'       => $offset - CommentRepository::COMMENTS_PER_PAGE,
-            'next'       => $offset + CommentRepository::COMMENTS_PER_PAGE,
+            'conference'   => $conference,
+            'comments'     => $paginator,
+            'prev'         => $offset - CommentRepository::COMMENTS_PER_PAGE,
+            'next'         => $offset + CommentRepository::COMMENTS_PER_PAGE,
+            'comment_form' => $commentForm->createView(),
         ]));
     }
 }
