@@ -9,7 +9,8 @@ use App\Repository\CommentRepository;
 use App\Repository\ConferenceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -40,7 +41,7 @@ final class ConferenceController extends AbstractController
     /**
      * @Route("/conference/{slug}", name="conference")
      */
-    public function show(Request $request, Conference $conference, CommentRepository $commentRepository): Response
+    public function show(Request $request, Conference $conference, CommentRepository $commentRepository, string $photoDir): Response
     {
         $comment     = new Comment();
         $commentForm = $this->createForm(CommentFormType::class, $comment);
@@ -49,6 +50,22 @@ final class ConferenceController extends AbstractController
 
         if ($commentForm->isSubmitted() && $commentForm->isValid()) {
             $comment->setConference($conference);
+
+            $photo = $commentForm['photo'] ?? null;
+            $photo = $photo ? $photo->getData() : null;
+
+            if ($photo instanceof UploadedFile) {
+                $filename = bin2hex(random_bytes(6) . '.' . $photo->guessExtension());
+
+                try {
+                    $photo->move($photoDir, $filename);
+                } catch (FileException $exception) {
+                    // i don't know what to do
+                }
+
+                $comment->setPhotoFilename($filename);
+            }
+
 
             $this->entityManager->persist($comment);
             $this->entityManager->flush();
