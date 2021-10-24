@@ -6,7 +6,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ConferenceControllerTest extends WebTestCase
 {
-    public function testSomething(): void
+    public function testIndex(): void
     {
         $client = self::createClient();
 
