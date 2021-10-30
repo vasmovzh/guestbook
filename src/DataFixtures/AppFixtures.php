@@ -57,6 +57,7 @@ final class AppFixtures extends Fixture
         $comment->setConference($conference);
         $comment->setCreatedAtValue();
         $comment->setEmail($commentData['email']);
+        $comment->setState($commentData['state']);
         $comment->setText($commentData['text']);
 
         $manager->persist($comment);
@@ -81,21 +82,25 @@ final class AppFixtures extends Fixture
             [
                 'author' => 'Valera',
                 'email'  => 'v@le.ra',
+                'state'  => 'published',
                 'text'   => 'test moscow text 1',
             ],
             [
                 'author' => 'Kirill',
                 'email'  => 'kir@du.rak',
+                'state'  => 'published',
                 'text'   => 'test moscow text 2',
             ],
             [
                 'author' => 'Dima',
                 'email'  => 'dim@du.rak',
+                'state'  => 'published',
                 'text'   => 'test moscow text 3',
             ],
             [
                 'author' => 'Zheka',
                 'email'  => 'zhek@du.rak',
+                'state'  => 'published',
                 'text'   => 'test moscow text 4',
             ],
         ];
@@ -107,21 +112,25 @@ final class AppFixtures extends Fixture
             [
                 'author' => 'Valera',
                 'email'  => 'v@le.ra',
+                'state'  => 'published',
                 'text'   => 'test tomsk text 1',
             ],
             [
                 'author' => 'Kirill',
                 'email'  => 'kir@du.rak',
+                'state'  => 'published',
                 'text'   => 'test tomsk text 2',
             ],
             [
                 'author' => 'Dima',
                 'email'  => 'dim@du.rak',
+                'state'  => 'published',
                 'text'   => 'test tomsk text 3',
             ],
             [
                 'author' => 'Zheka',
                 'email'  => 'zhek@du.rak',
+                'state'  => 'published',
                 'text'   => 'test tomsk text 4',
             ],
         ];

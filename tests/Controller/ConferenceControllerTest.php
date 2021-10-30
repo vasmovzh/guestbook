@@ -2,6 +2,9 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\Comment;
+use App\Repository\CommentRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ConferenceControllerTest extends WebTestCase
@@ -34,16 +37,29 @@ final class ConferenceControllerTest extends WebTestCase
     public function testCommentSubmission(): void
     {
         $client = self::createClient();
+        $email  = 'iv@n.org';
 
         $client->request('GET', '/conference/moscow-2021');
         $client->submitForm('Submit', [
             'comment_form[author]' => 'Ivan',
-            'comment_form[email]'  => 'iv@n.org',
+            'comment_form[email]'  => $email,
             'comment_form[photo]'  => dirname(__DIR__, 2) . '/public/images/under-construction.gif',
             'comment_form[text]'   => 'test moscow text from functional text',
         ]);
 
         self::assertResponseRedirects();
+
+        $container = self::getContainer();
+        /** @var CommentRepository $repository */
+        $repository = $container->get(CommentRepository::class);
+        $comment    = $repository->findOneBy(['email' => $email]);
+
+        self::assertInstanceOf(Comment::class, $comment);
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = $container->get(EntityManagerInterface::class);
+
+        $entityManager->flush();
 
         $client->followRedirect();
 
