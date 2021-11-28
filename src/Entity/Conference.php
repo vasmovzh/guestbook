@@ -13,7 +13,7 @@ use Symfony\Component\String\Slugger\SluggerInterface;
  * @ORM\Entity(repositoryClass=ConferenceRepository::class)
  * @UniqueEntity("slug")
  */
-final class Conference
+class Conference
 {
     /**
      * @ORM\Id

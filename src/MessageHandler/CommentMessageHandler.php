@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
+use App\Message\CommentMessage;
 use App\Repository\CommentRepository;
 use App\SpamChecker;
 use Doctrine\ORM\EntityManagerInterface;
-use Message\CommentMessage;
 use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 
 final class CommentMessageHandler implements MessageHandlerInterface

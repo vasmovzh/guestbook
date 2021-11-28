@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Message;
+namespace App\Message;
 
 final class CommentMessage
 {
