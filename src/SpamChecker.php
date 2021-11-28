@@ -12,6 +12,10 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class SpamChecker
 {
+    public const MAYBE_SPAM_SCORE = 1;
+    public const NOT_SPAM_SCORE   = 0;
+    public const SPAM_SCORE       = 2;
+
     private string              $endpoint;
     private HttpClientInterface $httpClient;
 
