@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Message\Handler;
+namespace App\MessageHandler;
 
 use App\Repository\CommentRepository;
 use App\SpamChecker;
