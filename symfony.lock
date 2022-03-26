@@ -487,6 +487,9 @@
     "symfony/polyfill-uuid": {
         "version": "v1.23.0"
     },
+    "symfony/process": {
+        "version": "v5.3.14"
+    },
     "symfony/property-access": {
         "version": "v5.3.8"
     },

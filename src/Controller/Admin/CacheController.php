@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Controller\Admin;
+namespace App\Controller\Admin;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\FrameworkBundle\HttpCache\HttpCache;
