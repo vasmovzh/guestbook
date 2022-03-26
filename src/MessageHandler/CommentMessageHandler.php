@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Entity\Comment;
+use App\ImageOptimizer;
 use App\Message\CommentMessage;
 use App\Repository\CommentRepository;
 use App\SpamChecker;
 use Doctrine\ORM\EntityManagerInterface;
-use Enum\SpamCheckScoreEnum;
-use Enum\WorkflowTransitionEnum;
+use App\Enum\SpamCheckScoreEnum;
+use App\Enum\WorkflowTransitionEnum;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\NotificationEmail;
 use Symfony\Component\Mailer\MailerInterface;
@@ -22,21 +23,25 @@ final class CommentMessageHandler implements MessageHandlerInterface
 {
     private CommentRepository      $commentRepository;
     private EntityManagerInterface $entityManager;
+    private ImageOptimizer         $imageOptimizer;
     private LoggerInterface        $logger;
     private MailerInterface        $mailer;
     private MessageBusInterface    $bus;
     private SpamChecker            $spamChecker;
     private string                 $adminEmail;
+    private string                 $photoDir;
     private WorkflowInterface      $workflow;
 
     public function __construct(
         CommentRepository      $commentRepository,
         EntityManagerInterface $entityManager,
+        ImageOptimizer         $imageOptimizer,
         LoggerInterface        $logger,
         MailerInterface        $mailer,
         MessageBusInterface    $bus,
         SpamChecker            $spamChecker,
         string                 $adminEmail,
+        string                 $photoDir,
         WorkflowInterface      $commentStateMachine
     )
     {
@@ -44,6 +49,8 @@ final class CommentMessageHandler implements MessageHandlerInterface
         $this->bus               = $bus;
         $this->commentRepository = $commentRepository;
         $this->entityManager     = $entityManager;
+        $this->photoDir          = $photoDir;
+        $this->imageOptimizer    = $imageOptimizer;
         $this->logger            = $logger;
         $this->mailer            = $mailer;
         $this->spamChecker       = $spamChecker;
@@ -65,6 +72,18 @@ final class CommentMessageHandler implements MessageHandlerInterface
         }
 
         if ($this->isCommentRequiresAdminReview($comment)){
+            return;
+        }
+
+        if ($this->workflow->can($comment, WorkflowTransitionEnum::OPTIMIZE)) {
+            $filename = $comment->getPhotoFilename();
+            if ($filename) {
+                $this->imageOptimizer->resize($this->photoDir . '/' . $filename);
+            }
+
+            $this->workflow->apply($comment, WorkflowTransitionEnum::OPTIMIZE);
+            $this->entityManager->flush();
+
             return;
         }
 

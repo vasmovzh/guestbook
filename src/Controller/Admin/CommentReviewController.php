@@ -7,7 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\Comment;
 use App\Message\CommentMessage;
 use Doctrine\ORM\EntityManagerInterface;
-use Enum\WorkflowTransitionEnum;
+use App\Enum\WorkflowTransitionEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
