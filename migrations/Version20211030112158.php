@@ -16,7 +16,7 @@ final class Version20211030112158 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE "comment" ADD "state" VARCHAR(10)');
+        $this->addSql('ALTER TABLE "comment" ADD "state" VARCHAR(20)');
         $this->addSql('UPDATE "comment" SET "state" = \'published\'');
         $this->addSql('ALTER TABLE "comment" ALTER COLUMN "state" SET NOT NULL');
     }

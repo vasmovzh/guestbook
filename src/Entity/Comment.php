@@ -100,9 +100,9 @@ final class Comment
         return $this;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    public function getCreatedAt(): ?\DateTimeImmutable
     {
-        return $this->createdAt;
+        return $this->createdAt ?? null;
     }
 
     public function setCreatedAt(\DateTimeImmutable $createdAt): self
