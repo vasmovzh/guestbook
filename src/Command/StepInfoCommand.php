@@ -38,6 +38,6 @@ final class StepInfoCommand extends Command
 
         $output->write($step);
 
-        return 0;
+        return Command::SUCCESS;
     }
 }

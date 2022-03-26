@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Comment;
 use App\Entity\Conference;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -17,6 +18,8 @@ use Doctrine\Persistence\ManagerRegistry;
 final class CommentRepository extends ServiceEntityRepository
 {
     public const COMMENTS_PER_PAGE = 5;
+
+    private const DAYS_BEFORE_REMOVAL = 1;
 
     public function __construct(ManagerRegistry $registry)
     {
@@ -39,32 +42,32 @@ final class CommentRepository extends ServiceEntityRepository
         return new Paginator($query);
     }
 
-    // /**
-    //  * @return Comment[] Returns an array of Comment objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    public function countOldRejectedOrSpam(): int
     {
-        return $this->createQueryBuilder('c')
-            ->andWhere('c.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('c.id', 'ASC')
-            ->setMaxResults(10)
+        return $this
+            ->getOldRejectedOrSpamQueryBuilder()
+            ->select('count(1)')
             ->getQuery()
-            ->getResult()
-        ;
+            ->getSingleScalarResult();
     }
-    */
 
-    /*
-    public function findOneBySomeField($value): ?Comment
+    public function deleteOldRejectedOrSpam(): int
     {
-        return $this->createQueryBuilder('c')
-            ->andWhere('c.exampleField = :val')
-            ->setParameter('val', $value)
+        return $this
+            ->getOldRejectedOrSpamQueryBuilder()
+            ->delete()
             ->getQuery()
-            ->getOneOrNullResult()
-        ;
+            ->execute();
     }
-    */
+
+    private function getOldRejectedOrSpamQueryBuilder(): QueryBuilder
+    {
+        return $this
+            ->createQueryBuilder('c')
+            ->andWhere('c.state in (:state_rejected, :state_spam)')
+            ->andWhere('c.createdAt < :date')
+            ->setParameter('state_rejected', 'rejected')
+            ->setParameter('state_spam', 'spam')
+            ->setParameter('date', new \DateTimeImmutable(-self::DAYS_BEFORE_REMOVAL . ' days'));
+    }
 }
