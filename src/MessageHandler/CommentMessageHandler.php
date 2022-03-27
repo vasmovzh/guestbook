@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Entity\Comment;
+use App\Enum\SpamCheckScoreEnum;
+use App\Enum\WorkflowTransitionEnum;
 use App\ImageOptimizer;
 use App\Message\CommentMessage;
+use App\Notification\CommentReviewNotification;
 use App\Repository\CommentRepository;
 use App\SpamChecker;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Enum\SpamCheckScoreEnum;
-use App\Enum\WorkflowTransitionEnum;
 use Psr\Log\LoggerInterface;
-use Symfony\Bridge\Twig\Mime\NotificationEmail;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 final class CommentMessageHandler implements MessageHandlerInterface
@@ -25,10 +25,9 @@ final class CommentMessageHandler implements MessageHandlerInterface
     private EntityManagerInterface $entityManager;
     private ImageOptimizer         $imageOptimizer;
     private LoggerInterface        $logger;
-    private MailerInterface        $mailer;
     private MessageBusInterface    $bus;
+    private NotifierInterface      $notifier;
     private SpamChecker            $spamChecker;
-    private string                 $adminEmail;
     private string                 $photoDir;
     private WorkflowInterface      $workflow;
 
@@ -37,22 +36,20 @@ final class CommentMessageHandler implements MessageHandlerInterface
         EntityManagerInterface $entityManager,
         ImageOptimizer         $imageOptimizer,
         LoggerInterface        $logger,
-        MailerInterface        $mailer,
         MessageBusInterface    $bus,
+        NotifierInterface      $notifier,
         SpamChecker            $spamChecker,
-        string                 $adminEmail,
         string                 $photoDir,
         WorkflowInterface      $commentStateMachine
     )
     {
-        $this->adminEmail        = $adminEmail;
         $this->bus               = $bus;
         $this->commentRepository = $commentRepository;
         $this->entityManager     = $entityManager;
-        $this->photoDir          = $photoDir;
         $this->imageOptimizer    = $imageOptimizer;
         $this->logger            = $logger;
-        $this->mailer            = $mailer;
+        $this->notifier          = $notifier;
+        $this->photoDir          = $photoDir;
         $this->spamChecker       = $spamChecker;
         $this->workflow          = $commentStateMachine;
     }
@@ -105,25 +102,11 @@ final class CommentMessageHandler implements MessageHandlerInterface
         $isPublishHamAvailable = $this->workflow->can($comment, WorkflowTransitionEnum::PUBLISH_HAM);
 
         if ($isPublishAvailable || $isPublishHamAvailable) {
-            $this->sendAdminEmail($comment);
-
+            $this->notifier->send(new CommentReviewNotification($comment), ...$this->notifier->getAdminRecipients());
             return true;
         }
 
         return false;
-    }
-
-    private function sendAdminEmail(Comment $comment): void
-    {
-        $message = new NotificationEmail();
-
-        $message->context(['comment' => $comment]);
-        $message->from($this->adminEmail);
-        $message->htmlTemplate('emails/comment_notification.html.twig');
-        $message->subject('New comment posted');
-        $message->to($this->adminEmail);
-
-        $this->mailer->send($message);
     }
 
     private function defineTransition(int $spamScore): ?string
