@@ -64,31 +64,24 @@ final class CommentMessageHandler implements MessageHandlerInterface
             return;
         }
 
-        if (! $this->workflow->can($comment, WorkflowTransitionEnum::ACCEPT)) {
-            $this->logger->debug('Dropping comment message', [
-                'comment_id' => $comment->getId(),
-                'state'      => $comment->getState(),
-            ]);
-        }
+        if ($this->workflow->can($comment, WorkflowTransitionEnum::ACCEPT)) {
+            $this->checkSpamScore($comment, $message);
 
-        if ($this->isCommentRequiresAdminReview($comment)){
             return;
         }
 
+        $this->notifyAdminAboutCommentReview($comment);
         $this->notifyUser($message, $comment);
+        $this->optimizeImage($comment);
 
-        if ($this->workflow->can($comment, WorkflowTransitionEnum::OPTIMIZE)) {
-            $filename = $comment->getPhotoFilename();
-            if ($filename) {
-                $this->imageOptimizer->resize($this->photoDir . '/' . $filename);
-            }
+        $this->logger->debug('Dropping comment message', [
+            'comment_id' => $comment->getId(),
+            'state'      => $comment->getState(),
+        ]);
+    }
 
-            $this->workflow->apply($comment, WorkflowTransitionEnum::OPTIMIZE);
-            $this->entityManager->flush();
-
-            return;
-        }
-
+    private function checkSpamScore(Comment $comment, CommentMessage $message): void
+    {
         $spamScore  = $this->spamChecker->getSpamScore($comment, $message->getContext());
         $transition = $this->defineTransition($spamScore);
 
@@ -99,34 +92,6 @@ final class CommentMessageHandler implements MessageHandlerInterface
         $this->workflow->apply($comment, $transition);
         $this->entityManager->flush();
         $this->bus->dispatch($message);
-    }
-
-    private function isCommentRequiresAdminReview(Comment $comment): bool
-    {
-        $isPublishAvailable    = $this->workflow->can($comment, WorkflowTransitionEnum::PUBLISH);
-        $isPublishHamAvailable = $this->workflow->can($comment, WorkflowTransitionEnum::PUBLISH_HAM);
-
-        if ($isPublishAvailable || $isPublishHamAvailable) {
-            $this->notifier->send(new CommentReviewNotification($comment), ...$this->notifier->getAdminRecipients());
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private function notifyUser(CommentMessage $message, Comment $comment): void
-    {
-        $isAccepted = $message->getContext()['isAccepted'] ?? false;
-        $recipient  = new Recipient($comment->getEmail());
-
-        if ($isAccepted && $comment->isPublished()) {
-            $this->notifier->send(new UserCommentPublishedNotification($comment), $recipient);
-        }
-
-        if (! $isAccepted && $comment->isRejected()) {
-            $this->notifier->send(new UserCommentRejectedNotification($comment), $recipient);
-        }
     }
 
     private function defineTransition(int $spamScore): ?string
@@ -145,6 +110,43 @@ final class CommentMessageHandler implements MessageHandlerInterface
                 $this->logger->warning('Undefined spam score: ' . $spamScore);
 
                 return null;
+        }
+    }
+
+    private function notifyAdminAboutCommentReview(Comment $comment): void
+    {
+        $isPublishAvailable    = $this->workflow->can($comment, WorkflowTransitionEnum::PUBLISH);
+        $isPublishHamAvailable = $this->workflow->can($comment, WorkflowTransitionEnum::PUBLISH_HAM);
+
+        if ($isPublishAvailable || $isPublishHamAvailable) {
+            $this->notifier->send(new CommentReviewNotification($comment), ...$this->notifier->getAdminRecipients());
+        }
+    }
+
+    private function notifyUser(CommentMessage $message, Comment $comment): void
+    {
+        $isAccepted = $message->getContext()['isAccepted'] ?? false;
+        $recipient  = new Recipient($comment->getEmail());
+
+        if ($isAccepted && ($comment->isReady() || $comment->isPublished())) {
+            $this->notifier->send(new UserCommentPublishedNotification($comment), $recipient);
+        }
+
+        if (! $isAccepted && $comment->isRejected()) {
+            $this->notifier->send(new UserCommentRejectedNotification($comment), $recipient);
+        }
+    }
+
+    private function optimizeImage(Comment $comment): void
+    {
+        if ($this->workflow->can($comment, WorkflowTransitionEnum::OPTIMIZE)) {
+            $filename = $comment->getPhotoFilename();
+            if ($filename) {
+                $this->imageOptimizer->resize($this->photoDir . '/' . $filename);
+            }
+
+            $this->workflow->apply($comment, WorkflowTransitionEnum::OPTIMIZE);
+            $this->entityManager->flush();
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\WorkflowFinalStateEnum;
 use App\Repository\CommentRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -161,13 +162,18 @@ final class Comment
         return $this;
     }
 
-    public function isRejected(): bool
-    {
-        return $this->getState() === 'rejected';
-    }
-
     public function isPublished(): bool
     {
-        return $this->getState() === 'published';
+        return $this->getState() === WorkflowFinalStateEnum::PUBLISHED;
+    }
+
+    public function isReady(): bool
+    {
+        return $this->getState() === WorkflowFinalStateEnum::READY;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->getState() === WorkflowFinalStateEnum::REJECTED;
     }
 }
