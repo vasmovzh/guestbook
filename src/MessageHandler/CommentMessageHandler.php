@@ -10,6 +10,8 @@ use App\Enum\WorkflowTransitionEnum;
 use App\ImageOptimizer;
 use App\Message\CommentMessage;
 use App\Notification\CommentReviewNotification;
+use App\Notification\UserCommentPublishedNotification;
+use App\Notification\UserCommentRejectedNotification;
 use App\Repository\CommentRepository;
 use App\SpamChecker;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,6 +19,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Notifier\NotifierInterface;
+use Symfony\Component\Notifier\Recipient\Recipient;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 final class CommentMessageHandler implements MessageHandlerInterface
@@ -72,6 +75,8 @@ final class CommentMessageHandler implements MessageHandlerInterface
             return;
         }
 
+        $this->notifyUser($message, $comment);
+
         if ($this->workflow->can($comment, WorkflowTransitionEnum::OPTIMIZE)) {
             $filename = $comment->getPhotoFilename();
             if ($filename) {
@@ -103,10 +108,25 @@ final class CommentMessageHandler implements MessageHandlerInterface
 
         if ($isPublishAvailable || $isPublishHamAvailable) {
             $this->notifier->send(new CommentReviewNotification($comment), ...$this->notifier->getAdminRecipients());
+
             return true;
         }
 
         return false;
+    }
+
+    private function notifyUser(CommentMessage $message, Comment $comment): void
+    {
+        $isAccepted = $message->getContext()['isAccepted'] ?? false;
+        $recipient  = new Recipient($comment->getEmail());
+
+        if ($isAccepted && $comment->isPublished()) {
+            $this->notifier->send(new UserCommentPublishedNotification($comment), $recipient);
+        }
+
+        if (! $isAccepted && $comment->isRejected()) {
+            $this->notifier->send(new UserCommentRejectedNotification($comment), $recipient);
+        }
     }
 
     private function defineTransition(int $spamScore): ?string

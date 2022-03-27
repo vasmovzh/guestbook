@@ -46,12 +46,8 @@ final class CommentReviewController extends AbstractController
         }
 
         $machine->apply($comment, $transition);
-
         $this->entityManager->flush();
-
-        if ($isAccepted) {
-            $this->bus->dispatch(new CommentMessage($comment->getId(), []));
-        }
+        $this->bus->dispatch(new CommentMessage($comment->getId(), ['isAccepted' => $isAccepted]));
 
         return $this->render('admin/review.html.twig', compact('transition', 'comment'));
     }

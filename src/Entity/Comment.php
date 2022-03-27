@@ -160,4 +160,14 @@ final class Comment
 
         return $this;
     }
+
+    public function isRejected(): bool
+    {
+        return $this->getState() === 'rejected';
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->getState() === 'published';
+    }
 }
