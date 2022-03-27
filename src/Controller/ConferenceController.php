@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Notifier\Notification\Notification;
+use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Twig\Environment;
 
@@ -64,7 +66,12 @@ final class ConferenceController extends AbstractController
     /**
      * @Route("/conference/{slug}", name="conference")
      */
-    public function show(Request $request, Conference $conference, CommentRepository $commentRepository, string $photoDir): Response
+    public function show(
+        Request           $request,
+        Conference        $conference,
+        CommentRepository $commentRepository,
+        NotifierInterface $notifier,
+        string            $photoDir): Response
     {
         $comment     = new Comment();
         $commentForm = $this->createForm(CommentFormType::class, $comment);
@@ -101,7 +108,15 @@ final class ConferenceController extends AbstractController
 
             $this->messageBus->dispatch(new CommentMessage($comment->getId(), $context));
 
+            $notification = new Notification('Thank you for the feedback. Your comment will be posted after moderation', ['browser']);
+
+            $notifier->send($notification);
+
             return $this->redirectToRoute('conference', ['slug' => $conference->getSlug()]);
+        }
+
+        if ($commentForm->isSubmitted()) {
+            $notifier->send(new Notification('Could you check your submission? There are some problems with it', ['browser']));
         }
 
         $offset    = max(0, $request->query->getInt('offset'));

@@ -5,6 +5,13 @@
 {% endblock %}
 
 {% block body %}
+    {% for message in app.flashes('notification') %}
+        <div>
+            {{ message }}
+            <button type="button" class="btn-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+    {% endfor %}
+
     <h2>{{ conference }} Conference</h2>
 
     {% if comments|length <= 0 %}
